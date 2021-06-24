@@ -9,11 +9,8 @@ def import_maxquant(path, normalize=False, plot=True):
     data_raw = pd.read_csv(path, sep="\t", header=0, index_col="id")
     # add columns for uniprotID and gene; cast potential contaminant and
     # reverse to booleans
-    data_raw["uniprotID"] = data_raw["Protein IDs"].apply(
-        lambda val: val.split(";")[0])
-    data_raw["gene"] = data_raw["Gene names"].apply(
-        lambda val: val.split(";")[0] if pd.notna(val) else val
-    )
+    data_raw["uniprotID"] = data_raw["Protein IDs"]
+    data_raw["gene"] = data_raw["Gene names"]
     data_raw["Potential contaminant"] = data_raw["Potential contaminant"].apply(
         lambda val: val == "+"
     )
