@@ -11,10 +11,17 @@ def import_maxquant(path, normalize=False, plot=True):
     # reverse to booleans
     data_raw["uniprotID"] = data_raw["Protein IDs"]
     data_raw["gene"] = data_raw["Gene names"]
-    data_raw["Potential contaminant"] = data_raw["Potential contaminant"].apply(
-        lambda val: val == "+"
-    )
-    data_raw["Reverse"] = data_raw["Reverse"].apply(lambda val: val == "+")
+    if "Potential contaminant" in data_raw:
+        data_raw["Potential contaminant"] = data_raw["Potential contaminant"].apply(
+            lambda val: val == "+"
+        )
+    else:
+        data_raw["Potential contaminant"] = False
+    if "Reverse" in data_raw:
+        data_raw["Reverse"] = data_raw["Reverse"].apply(lambda val: val == "+")
+    else:
+        data_raw["Reverse"] = False
+
     # get names of samples from columns
     samples = [
         sample.split("LFQ intensity ")[1]
