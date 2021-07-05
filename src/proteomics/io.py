@@ -1,10 +1,9 @@
 import pandas as pd
 import math
-import seaborn as sns
 from .util import lfq_col
 
 
-def import_maxquant(path, normalize=False, plot=True):
+def import_maxquant(path, normalize=False):
     # load proteinGroups file as dataframe
     data_raw = pd.read_csv(path, sep="\t", header=0, index_col="id")
     # add columns for uniprotID and gene; cast potential contaminant and
@@ -55,8 +54,4 @@ def import_maxquant(path, normalize=False, plot=True):
     else:
         data_normalized = data_notna
 
-    if plot:
-        sns.boxplot(data=data_normalized[lfq_col(samples)], orient="h").set(
-            xlabel="log2 LFQ intensity"
-        )
     return data_normalized, samples
