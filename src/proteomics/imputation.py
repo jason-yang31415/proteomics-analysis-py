@@ -80,7 +80,8 @@ def impute_4_6(data, n_rep=2):
             for refcol in refcols:
                 corr_mean = corr(refcol, imputecols)
                 Dmean, Dstd = delta(col, refcol)
-                Dnew = stats.norm.rvs(loc=Dmean, scale=Dstd / ((2 ** 0.5) * corr_mean))
+                Dnew = stats.norm.rvs(
+                    loc=Dmean, scale=Dstd / ((2 ** 0.5) * corr_mean))
                 Inews.append(row[refcol] * abs(1 + Dnew))
             row[col] = np.array(Inews).mean()
         return row
@@ -100,7 +101,7 @@ def impute_twostep(data, imputed_small):
     return cp
 
 
-def compare(comparisons, conditions, unimputed, imputed_list):
+def compare(comparisons, conditions, unimputed, imputed_list, sig_p=0.05, sig_fc=1, sig_reps=2):
     data_comparisons = {key: None for key in comparisons}
 
     for comparison in comparisons:
@@ -142,7 +143,8 @@ def compare(comparisons, conditions, unimputed, imputed_list):
         # remove proteins not detected in either condition before adjusting p
         # values
         mask = pd.notna(
-            unimputed[lfq_col(conditions[comparison[0]] + conditions[comparison[1]])]
+            unimputed[lfq_col(conditions[comparison[0]] +
+                              conditions[comparison[1]])]
         ).any(axis=1)
         df_comparison = df_comparison.loc[mask]
         # adjust p values using p values averaged across imputation runs
@@ -159,11 +161,11 @@ def compare(comparisons, conditions, unimputed, imputed_list):
         ).sum(axis=1)
         # mark proteins as significant
         df_comparison["significant"] = (
-            (df_comparison["p adjusted"] < 0.05)
-            & (abs(df_comparison["log FC"]) > 1)
+            (df_comparison["p adjusted"] < sig_p)
+            & (abs(df_comparison["log FC"]) > sig_fc)
             & (
-                (df_comparison[f"n {comparison[0]}"] >= 2)
-                | (df_comparison[f"n {comparison[1]}"] >= 2)
+                (df_comparison[f"n {comparison[0]}"] >= sig_reps)
+                | (df_comparison[f"n {comparison[1]}"] >= sig_reps)
             )
         )
 
