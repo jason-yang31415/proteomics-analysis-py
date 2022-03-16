@@ -2,14 +2,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def volcano(data, subsets, ax=None, interactive=False):
+def scatter(data, x, y, subsets, ax=None, interactive=False):
     """
-    make a volcano plot
+    make a scatter plot with layers
 
-    :param data: dataframe containing comparison data
+    :param data: dataframe containing data
+    :param x: column name or function on data to plot on x-axis
+    :param y: column name or function on data to plot on y-axis
     :param subsets: list of subsets of points to have different formatting, as tuples (set, plotting kwargs, lookup)
-    :param ax: axes to plot on
+    :param ax: axis to plot on
+    :param interactive: function on data to annotate points, or False to not annotate
     """
+    if ax is None:
+        ax = plt.gca()
+
+    fn_x = x if callable(x) else lambda df: df[x]
+    fn_y = y if callable(y) else lambda df: df[y]
+
     layers = [
     ]  # list of layers of points (set, plotting kwargs) with distinct points
     prev = set()  # set of points already plotted on previous layers
@@ -26,13 +35,12 @@ def volcano(data, subsets, ax=None, interactive=False):
         prev |= s[0]  # add current layer's points to prev
     layers = layers[::-1]  # reverse layers
 
-    if ax is None:
-        ax = plt.gca()
-    # iterate from last layer backwards so that the last subset is plotted on top
     paths = []
     for s in layers:
-        path = ax.scatter(data.loc[s[0]]["log FC"], -
-                          np.log10(data.loc[s[0]]["p adjusted"]), **s[1])
+        pt_x = fn_x(data.loc[s[0]])
+        pt_y = fn_y(data.loc[s[0]])
+
+        path = ax.scatter(pt_x, pt_y, **s[1])
         paths.append(path)
 
     if interactive:
@@ -47,13 +55,8 @@ def volcano(data, subsets, ax=None, interactive=False):
         def update_annot(i, ind):
             # show annotation for ind-th point of i-th layer
             idx = layers[i][0][ind]  # get index of point in data
-            annot.xy = (data.loc[idx]["log FC"], -
-                        np.log10(data.loc[idx]["p adjusted"]))
-            text = "{}\n{:.2f}, {:.2f}".format(
-                data.loc[idx]["gene"],
-                data.loc[idx]["log FC"],
-                -np.log10(data.loc[idx]["p adjusted"]))
-            annot.set_text(text)
+            annot.xy = (fn_x(data.loc[idx]), fn_y(data.loc[idx]))
+            annot.set_text(interactive(data.loc[idx]))
 
         def hover(event):
             if event.inaxes == ax:
@@ -71,8 +74,8 @@ def volcano(data, subsets, ax=None, interactive=False):
                         distances = [
                             np.linalg.norm(
                                 np.array([x, y]) - np.array(
-                                    [data.loc[layers[i][0][z]]["log FC"] / xrange,
-                                     -np.log10(data.loc[layers[i][0][z]]["p adjusted"]) / yrange]
+                                    [fn_x(data.loc[layers[i][0][z]]) / xrange,
+                                     fn_y(data.loc[layers[i][0][z]]) / yrange]
                                 )
                             ) for z in ind["ind"]
                         ]
@@ -88,3 +91,19 @@ def volcano(data, subsets, ax=None, interactive=False):
                     fig.canvas.draw_idle()
 
         fig.canvas.mpl_connect("motion_notify_event", hover)
+
+
+def volcano(data, subsets, ax=None, interactive=False):
+    """
+    make a volcano plot
+
+    :param data: dataframe containing comparison data
+    :param subsets: list of subsets of points to have different formatting, as tuples (set, plotting kwargs, lookup)
+    :param ax: axes to plot on
+    """
+    def interactive_fn(x): return "{}\n{:.2f}, {:.2f}".format(
+        x["gene"],
+        x["log FC"],
+        -np.log10(x["p adjusted"])) if interactive else False
+    scatter(data, "log FC", lambda df: -
+            np.log10(df["p adjusted"]), subsets, ax, interactive=interactive_fn)
